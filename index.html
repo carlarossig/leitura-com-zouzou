@@ -20,6 +20,7 @@
     .highlighted {
       background-color: yellow;
       border-radius: 5px;
+      padding: 2px 4px;
     }
     #display {
       margin-top: 30px;
@@ -34,7 +35,7 @@
     button {
       padding: 10px 20px;
       font-size: 18px;
-      margin-top: 10px;
+      margin: 10px 5px;
     }
   </style>
 </head>
@@ -43,56 +44,74 @@
   <h1>Lire avec Zouzou 🐸</h1>
   <p>Colle ou écris un texte ici :</p>
   <textarea id="inputText">Bonjour ! Je m'appelle Zouzou et j'adore lire avec toi !</textarea><br>
+  
   <button onclick="startReading()">Lire</button>
+  <button onclick="pauseReading()">⏸️ Pause</button>
+  <button onclick="resumeReading()">▶️ Continuer</button>
 
   <div id="display"></div>
   <div id="zouzou">🐸 Bravo ! Tu lis de mieux en mieux !</div>
 
   <script>
-    function speakWord(word, index, total, callback) {
+    let words = [];
+    let currentIndex = 0;
+    let isPaused = false;
+
+    function speakWord(word, callback) {
       const utterance = new SpeechSynthesisUtterance(word);
       utterance.lang = 'fr-FR';
       utterance.rate = 0.6;
 
       utterance.onend = function () {
-        setTimeout(callback, 500); // pausa entre palavras
+        setTimeout(callback, 300); // pequena pausa entre palavras
       };
+
       speechSynthesis.speak(utterance);
     }
 
-    function highlightWord(words, currentIndex) {
-      return words.map((word, i) => {
-        return i === currentIndex ? `<span class="highlighted">${word}</span>` : word;
-      }).join(' ');
+    function highlight(words, current) {
+      return words.map((w, i) =>
+        i === current ? `<span class="highlighted">${w}</span>` : w
+      ).join(' ');
     }
 
     function startReading() {
       const input = document.getElementById('inputText').value.trim();
       if (!input) return;
 
-      const words = input.split(/\s+/);
-      const display = document.getElementById('display');
-      const zouzou = document.getElementById('zouzou');
+      words = input.split(/\s+/);
+      currentIndex = 0;
+      isPaused = false;
 
-      display.innerHTML = '';
-      zouzou.style.display = 'none';
+      document.getElementById('zouzou').style.display = 'none';
+      window.speechSynthesis.cancel();
+      readNext();
+    }
 
-      let index = 0;
-
-      function readNext() {
-        if (index >= words.length) {
-          zouzou.style.display = 'block';
-          return;
-        }
-
-        display.innerHTML = highlightWord(words, index);
-        speakWord(words[index], index, words.length, () => {
-          index++;
-          readNext();
-        });
+    function readNext() {
+      if (currentIndex >= words.length) {
+        document.getElementById('zouzou').style.display = 'block';
+        return;
       }
 
-      readNext();
+      if (isPaused) return;
+
+      document.getElementById('display').innerHTML = highlight(words, currentIndex);
+      speakWord(words[currentIndex], () => {
+        currentIndex++;
+        readNext();
+      });
+    }
+
+    function pauseReading() {
+      isPaused = true;
+      speechSynthesis.cancel(); // interrompe a palavra atual
+    }
+
+    function resumeReading() {
+      if (!isPaused) return;
+      isPaused = false;
+      readNext(); // retoma do ponto onde parou
     }
   </script>
 
