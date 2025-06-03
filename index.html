@@ -24,7 +24,7 @@
     }
     #display {
       margin-top: 30px;
-      font-size: 36px;
+      font-size: 28px;
       min-height: 60px;
     }
     #zouzou {
@@ -32,7 +32,7 @@
       margin-top: 30px;
       display: none;
     }
-    button {
+    button, select {
       padding: 10px 20px;
       font-size: 18px;
       margin: 10px 5px;
@@ -44,7 +44,10 @@
   <h1>Lire avec Zouzou 🐸</h1>
   <p>Colle ou écris un texte ici :</p>
   <textarea id="inputText">Bonjour ! Je m'appelle Zouzou et j'adore lire avec toi !</textarea><br>
-  
+
+  <label for="voiceSelect">Choisis une voix :</label>
+  <select id="voiceSelect"></select><br>
+
   <button onclick="startReading()">Lire</button>
   <button onclick="pauseReading()">⏸️ Pause</button>
   <button onclick="resumeReading()">▶️ Continuer</button>
@@ -53,17 +56,40 @@
   <div id="zouzou">🐸 Bravo ! Tu lis de mieux en mieux !</div>
 
   <script>
+    let voices = [];
+    let selectedVoice = null;
     let words = [];
     let currentIndex = 0;
     let isPaused = false;
 
+    const voiceSelect = document.getElementById("voiceSelect");
+
+    function populateVoices() {
+      voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith("fr"));
+      voiceSelect.innerHTML = "";
+      voices.forEach((voice, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
+      });
+      selectedVoice = voices[0];
+    }
+
+    speechSynthesis.onvoiceschanged = populateVoices;
+
+    voiceSelect.addEventListener("change", () => {
+      selectedVoice = voices[voiceSelect.value];
+    });
+
     function speakWord(word, callback) {
       const utterance = new SpeechSynthesisUtterance(word);
+      utterance.voice = selectedVoice;
       utterance.lang = 'fr-FR';
       utterance.rate = 0.6;
 
       utterance.onend = function () {
-        setTimeout(callback, 300); // pequena pausa entre palavras
+        setTimeout(callback, 300);
       };
 
       speechSynthesis.speak(utterance);
@@ -105,13 +131,13 @@
 
     function pauseReading() {
       isPaused = true;
-      speechSynthesis.cancel(); // interrompe a palavra atual
+      speechSynthesis.cancel();
     }
 
     function resumeReading() {
       if (!isPaused) return;
       isPaused = false;
-      readNext(); // retoma do ponto onde parou
+      readNext();
     }
   </script>
 
