@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Lire avec Zouzou 🐸</title>
+  <style>
+    body {
+      font-family: 'Comic Sans MS', sans-serif;
+      background-color: #e3f9f3;
+      text-align: center;
+      padding: 20px;
+    }
+    #textArea {
+      width: 90%;
+      height: 100px;
+      font-size: 20px;
+    }
+    .syllable {
+      padding: 2px;
+      margin: 1px;
+      display: inline-block;
+    }
+    .highlight {
+      background-color: yellow;
+      border-radius: 5px;
+    }
+    #zouzou {
+      margin-top: 20px;
+      font-size: 24px;
+    }
+    #readButton {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin-top: 10px;
+    }
+    #outputText {
+      font-size: 28px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lire avec Zouzou 🐸</h1>
+
+  <textarea id="textArea" placeholder="Colle ton texte ici...">Le robot joue avec une grenouille magique.</textarea>
+  <br>
+  <button id="readButton">Lire avec Zouzou</button>
+
+  <div id="outputText"></div>
+  <div id="zouzou"></div>
+
+  <script>
+    const readButton = document.getElementById("readButton");
+    const outputText = document.getElementById("outputText");
+    const zouzou = document.getElementById("zouzou");
+
+    const messages = [
+      "Bravo ! 🐸", 
+      "Tu lis très bien !", 
+      "Zouzou est fière de toi !", 
+      "Continue comme ça !"
+    ];
+
+    function splitIntoSyllables(text) {
+      return text.split(/([aeiouyàâéèêëîïôùûüœ]+)/i).filter(s => s.trim() !== "");
+    }
+
+    function speak(text, callback) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "fr-FR";
+      utterance.rate = 0.7;
+      utterance.onend = callback;
+      speechSynthesis.speak(utterance);
+    }
+
+    readButton.onclick = () => {
+      const text = document.getElementById("textArea").value;
+      const syllables = splitIntoSyllables(text);
+      outputText.innerHTML = "";
+      zouzou.innerHTML = "";
+
+      syllables.forEach((s, i) => {
+        const span = document.createElement("span");
+        span.textContent = s;
+        span.className = "syllable";
+        outputText.appendChild(span);
+      });
+
+      let index = 0;
+      function readNext() {
+        if (index > 0) outputText.children[index - 1].classList.remove("highlight");
+        if (index >= syllables.length) {
+          zouzou.innerText = messages[Math.floor(Math.random() * messages.length)];
+          return;
+        }
+        const current = outputText.children[index];
+        current.classList.add("highlight");
+        speak(syllables[index], () => {
+          index++;
+          readNext();
+        });
+      }
+
+      readNext();
+    }
+  </script>
+</body>
+</html>
+
+primeira versão
