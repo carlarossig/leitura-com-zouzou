@@ -1,40 +1,134 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Testeur de Voix</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lecteur magique</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f8ff;
+      padding: 20px;
+      text-align: center;
+    }
+    #textInput, #customTextInput {
+      width: 90%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+    .highlight {
+      background-color: yellow;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    #displayText {
+      margin-top: 20px;
+      font-size: 1.5em;
+      min-height: 60px;
+    }
+    #controls {
+      margin-top: 20px;
+    }
+    select, button {
+      font-size: 1em;
+      padding: 10px;
+      margin: 5px;
+    }
+  </style>
 </head>
 <body>
-  <h1>🎙️ Testeur de Voix disponibles</h1>
-  <p>Liste des voix disponibles dans ton navigateur :</p>
-  <ul id="voiceList"></ul>
+  <h1>📖 Lecteur magique de Zouzou 🐸</h1>
+
+  <label for="voiceSelect">🎭 Choisis ton narrateur :</label>
+  <select id="voiceSelect"></select>
+
+  <div id="controls">
+    <button onclick="speakText()">Lire</button>
+    <button onclick="pauseReading()">Pause</button>
+    <button onclick="resumeReading()">Continuer</button>
+  </div>
+
+  <textarea id="customTextInput" rows="4" placeholder="Colle ton texte ici..."></textarea>
+  <div id="displayText"></div>
 
   <script>
-    function listVoices() {
-      const voices = speechSynthesis.getVoices();
-      const voiceList = document.getElementById("voiceList");
-      voiceList.innerHTML = "";
+    const display = document.getElementById("displayText");
+    const input = document.getElementById("customTextInput");
+    const voiceSelect = document.getElementById("voiceSelect");
 
-      voices.forEach((voice, index) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>${index}:</strong> ${voice.name} (${voice.lang})` +
-                       (voice.default ? " - [Par défaut]" : "") +
-                       (voice.localService ? " - [Local]" : "");
-        const testBtn = document.createElement("button");
-        testBtn.innerText = "🔊 Écouter";
-        testBtn.onclick = () => {
-          const utter = new SpeechSynthesisUtterance("Bonjour, je suis une voix disponible.");
-          utter.voice = voice;
-          utter.lang = voice.lang;
-          utter.rate = 0.7;
-          speechSynthesis.speak(utter);
-        };
-        li.appendChild(testBtn);
-        voiceList.appendChild(li);
+    let utterance;
+    let wordIndex = 0;
+    let words = [];
+    let selectedVoice = null;
+
+    const characters = {
+      "Alex": "🐱 Minou",
+      "Amelie": "👩 Lulu",
+      "Thomas": "👨 Gaston",
+      "Fred": "🤖 Roby",
+      "Google français": "🐸 Zouzou"
+    };
+
+    function populateVoiceList() {
+      const voices = speechSynthesis.getVoices();
+      voiceSelect.innerHTML = "";
+      voices.forEach(voice => {
+        if (voice.lang.startsWith("fr")) {
+          const option = document.createElement("option");
+          const label = characters[voice.name] || voice.name;
+          option.textContent = `${label} - ${voice.name}`;
+          option.value = voice.name;
+          voiceSelect.appendChild(option);
+        }
       });
     }
 
-    speechSynthesis.onvoiceschanged = listVoices;
+    speechSynthesis.onvoiceschanged = populateVoiceList;
+
+    function speakText() {
+      if (speechSynthesis.speaking) {
+        speechSynthesis.cancel();
+      }
+
+      const text = input.value.trim();
+      words = text.split(/\s+/);
+      wordIndex = 0;
+      display.innerHTML = "";
+      readNextWord();
+    }
+
+    function readNextWord() {
+      if (wordIndex >= words.length) return;
+
+      const currentWord = words[wordIndex];
+      const before = words.slice(0, wordIndex).join(" ");
+      const after = words.slice(wordIndex + 1).join(" ");
+      display.innerHTML = `${before} <span class="highlight">${currentWord}</span> ${after}`;
+
+      utterance = new SpeechSynthesisUtterance(currentWord);
+      utterance.rate = 0.7;
+
+      const selected = voiceSelect.value;
+      const voices = speechSynthesis.getVoices();
+      const found = voices.find(v => v.name === selected);
+      if (found) utterance.voice = found;
+
+      utterance.onend = () => {
+        wordIndex++;
+        setTimeout(readNextWord, 400);
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    function pauseReading() {
+      speechSynthesis.pause();
+    }
+
+    function resumeReading() {
+      speechSynthesis.resume();
+    }
   </script>
 </body>
 </html>
