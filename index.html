@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  
   <meta charset="UTF-8">
   <title>Lire avec Zouzou 🐸</title>
   <style>
@@ -69,4 +68,33 @@
 
     function startReading() {
       const input = document.getElementById('inputText').value.trim();
-      if (!input) r
+      if (!input) return;
+
+      const words = input.split(/\s+/);
+      const display = document.getElementById('display');
+      const zouzou = document.getElementById('zouzou');
+
+      display.innerHTML = '';
+      zouzou.style.display = 'none';
+
+      let index = 0;
+
+      function readNext() {
+        if (index >= words.length) {
+          zouzou.style.display = 'block';
+          return;
+        }
+
+        display.innerHTML = highlightWord(words, index);
+        speakWord(words[index], index, words.length, () => {
+          index++;
+          readNext();
+        });
+      }
+
+      readNext();
+    }
+  </script>
+
+</body>
+</html>
