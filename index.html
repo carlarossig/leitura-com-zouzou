@@ -1,139 +1,145 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lecteur magique</title>
+  <meta charset="UTF-8">
+  <title>Lire avec Zouzou 🐸</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f0f8ff;
-      padding: 20px;
       text-align: center;
+      background-color: #f2f8f2;
+      padding: 20px;
     }
-    #textInput, #customTextInput {
-      width: 90%;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 1.2em;
-    }
-    .highlight {
-      background-color: yellow;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-    #displayText {
+    textarea {
+      width: 80%;
+      height: 120px;
       margin-top: 20px;
-      font-size: 1.5em;
+      font-size: 18px;
+      padding: 10px;
+    }
+    .highlighted {
+      background-color: yellow;
+      border-radius: 5px;
+      padding: 2px 4px;
+    }
+    #display {
+      margin-top: 30px;
+      font-size: 28px;
       min-height: 60px;
     }
-    #controls {
-      margin-top: 20px;
+    #zouzou {
+      font-size: 48px;
+      margin-top: 30px;
+      display: none;
     }
-    select, button {
-      font-size: 1em;
-      padding: 10px;
-      margin: 5px;
+    button, select {
+      padding: 10px 20px;
+      font-size: 18px;
+      margin: 10px 5px;
     }
   </style>
 </head>
 <body>
-  <h1>📖 Lecteur magique de Zouzou 🐸</h1>
 
-  <label for="voiceSelect">🎭 Choisis ton narrateur :</label>
-  <select id="voiceSelect"></select>
+  <h1>Lire avec Zouzou 🐸</h1>
+  <p>Colle ou écris un texte ici :</p>
+  <textarea id="inputText">Bonjour ! Je m'appelle Zouzou et j'adore lire avec toi !</textarea><br>
 
-  <div id="controls">
-    <button onclick="speakText()">Lire</button>
-    <button onclick="pauseReading()">Pause</button>
-    <button onclick="resumeReading()">Continuer</button>
-  </div>
+  <label for="voiceSelect">Choisis une voix :</label>
+  <select id="voiceSelect"></select><br>
 
-  <textarea id="customTextInput" rows="4" placeholder="Colle ton texte ici...">Bonjour ! Je m'appelle Zouzou et j'adore lire avec toi !</textarea>
-  <div id="displayText"></div>
+  <button onclick="startReading()">Lire</button>
+  <button onclick="pauseReading()">⏸️ Pause</button>
+  <button onclick="resumeReading()">▶️ Continuer</button>
+
+  <div id="display"></div>
+  <div id="zouzou">🐸 Bravo ! Tu lis de mieux en mieux !</div>
 
   <script>
-    const display = document.getElementById("displayText");
-    const input = document.getElementById("customTextInput");
+    let voices = [];
+    let selectedVoice = null;
+    let words = [];
+    let currentIndex = 0;
+    let isPaused = false;
+
     const voiceSelect = document.getElementById("voiceSelect");
 
-    let utterance;
-    let wordIndex = 0;
-    let words = [];
-    let selectedVoice = null;
-
-    const characters = {
-      "Alex": "🐱 Minou",
-      "Amelie": "👩 Lulu",
-      "Thomas": "👨 Gaston",
-      "Fred": "🤖 Roby",
-      "Google français": "🐸 Zouzou"
-    };
-
-    function populateVoiceList() {
-      const voices = speechSynthesis.getVoices();
+    function populateVoices() {
+      voices = speechSynthesis.getVoices().filter(voice => voice.lang.startsWith("fr"));
       voiceSelect.innerHTML = "";
-      voices.forEach(voice => {
-        if (voice.lang.startsWith("fr")) {
-          const option = document.createElement("option");
-          const label = characters[voice.name] || voice.name;
-          option.textContent = `${label} - ${voice.name}`;
-          option.value = voice.name;
-          voiceSelect.appendChild(option);
-        }
+      voices.forEach((voice, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = `${voice.name} (${voice.lang})`;
+        voiceSelect.appendChild(option);
       });
+      selectedVoice = voices[0];
     }
 
-    speechSynthesis.onvoiceschanged = populateVoiceList;
+    speechSynthesis.onvoiceschanged = populateVoices;
 
-    function speakText() {
-      if (speechSynthesis.speaking) {
-        speechSynthesis.cancel();
-      }
+    voiceSelect.addEventListener("change", () => {
+      selectedVoice = voices[voiceSelect.value];
+    });
 
-      const text = input.value.trim();
-      if (!text) return;
+    function speakWord(word, callback) {
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.voice = selectedVoice;
+      utterance.lang = 'fr-FR';
+      utterance.rate = 0.6;
 
-      // Usa expressão regular para capturar palavras com acentos e letras isoladas como "y"
-      words = text.match(/\\S+/g) || [];
-      wordIndex = 0;
-      display.innerHTML = "";
-      readNextWord();
-    }
-
-    function readNextWord() {
-      if (wordIndex >= words.length) return;
-
-      const currentWord = words[wordIndex];
-      const before = words.slice(0, wordIndex).join(" ");
-      const after = words.slice(wordIndex + 1).join(" ");
-      display.innerHTML = `${before} <span class="highlight">${currentWord}</span> ${after}`;
-
-      utterance = new SpeechSynthesisUtterance(currentWord);
-      utterance.rate = 0.7;
-
-      const selected = voiceSelect.value;
-      const voices = speechSynthesis.getVoices();
-      const found = voices.find(v => v.name === selected);
-      if (found) utterance.voice = found;
-
-      utterance.lang = "fr-FR";
-
-      utterance.onend = () => {
-        wordIndex++;
-        setTimeout(readNextWord, 400);
+      utterance.onend = function () {
+        setTimeout(callback, 300);
       };
 
       speechSynthesis.speak(utterance);
     }
 
+    function highlight(words, current) {
+      return words.map((w, i) =>
+        i === current ? `<span class="highlighted">${w}</span>` : w
+      ).join(' ');
+    }
+
+    function startReading() {
+      const input = document.getElementById('inputText').value.trim();
+      if (!input) return;
+
+      words = input.split(/\s+/);
+      currentIndex = 0;
+      isPaused = false;
+
+      document.getElementById('zouzou').style.display = 'none';
+      window.speechSynthesis.cancel();
+      readNext();
+    }
+
+    function readNext() {
+      if (currentIndex >= words.length) {
+        document.getElementById('zouzou').style.display = 'block';
+        return;
+      }
+
+      if (isPaused) return;
+
+      document.getElementById('display').innerHTML = highlight(words, currentIndex);
+      speakWord(words[currentIndex], () => {
+        currentIndex++;
+        readNext();
+      });
+    }
+
     function pauseReading() {
-      speechSynthesis.pause();
+      isPaused = true;
+      speechSynthesis.cancel();
     }
 
     function resumeReading() {
-      speechSynthesis.resume();
+      if (!isPaused) return;
+      isPaused = false;
+      readNext();
     }
   </script>
+
 </body>
 </html>
