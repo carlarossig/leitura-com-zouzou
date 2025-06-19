@@ -49,7 +49,7 @@
     <button onclick="resumeReading()">Continuer</button>
   </div>
 
-  <textarea id="customTextInput" rows="4" placeholder="Colle ton texte ici..."></textarea>
+  <textarea id="customTextInput" rows="4" placeholder="Colle ton texte ici...">Bonjour ! Je m'appelle Zouzou et j'adore lire avec toi !</textarea>
   <div id="displayText"></div>
 
   <script>
@@ -92,7 +92,10 @@
       }
 
       const text = input.value.trim();
-      words = text.split(/\s+/);
+      if (!text) return;
+
+      // Usa expressão regular para capturar palavras com acentos e letras isoladas como "y"
+      words = text.match(/\\S+/g) || [];
       wordIndex = 0;
       display.innerHTML = "";
       readNextWord();
@@ -113,6 +116,8 @@
       const voices = speechSynthesis.getVoices();
       const found = voices.find(v => v.name === selected);
       if (found) utterance.voice = found;
+
+      utterance.lang = "fr-FR";
 
       utterance.onend = () => {
         wordIndex++;
